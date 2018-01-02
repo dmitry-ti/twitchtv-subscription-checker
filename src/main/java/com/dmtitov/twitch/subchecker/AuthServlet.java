@@ -44,12 +44,12 @@ public class AuthServlet extends HttpServlet {
 		
 		final String clientId = properties.getProperty("client_id");
 		final String clientSecret = properties.getProperty("client_secret");
-		final String redirectUri = properties.getProperty("redirect_uri");
+		final String subcheckerEndpoint = properties.getProperty("subchecker_endpoint");
 		final String channelName = properties.getProperty("channel_name");
+		final String onSuccessRedirectUrl = properties.getProperty("on_success_redirect_url");
 		final String code = request.getParameter("code");
-		final String scope = request.getParameter("scope");
 
-		Token token = getToken(clientId, clientSecret, redirectUri, code);
+		Token token = getToken(clientId, clientSecret, subcheckerEndpoint, code);
 		if(token == null) {
 			response.getWriter().println("<html><body>Server error: Could not get access token</body></html>");
 			return;
@@ -77,17 +77,8 @@ public class AuthServlet extends HttpServlet {
 			return;
 		}
 
-		response.getWriter()
-				.append("<html>").append("<body>").append("code: ").append(code).append("<br>")
-				.append("scope: ").append(scope).append("<br>").append("access token: ").append(token.getAccessToken())
-				.append("<br>").append("refresh token: ").append(token.getRefreshToken()).append("<br>")
-				.append("user id: ").append(user.getId()).append("<br>").append("user email: ").append(user.getEmail())
-				.append("<br>").append("user name: ").append(user.getName()).append("<br>")
-				.append("user displayed name: ").append(user.getDisplayedName()).append("<br>")
-				.append("subscription plan name: ").append(subscription.getPlanName()).append("<br>")
-				.append("channel id: ").append(subscription.getChannel().getId()).append("<br>")
-				.append("channel name: ").append(subscription.getChannel().getName()).append("</body>")
-				.append("</html>").flush();
+		response.setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
+		response.setHeader("Location", onSuccessRedirectUrl);  
 	}
 
 	private Token getToken(String clientId, String clientSecret, String redirectUri, String code) {
