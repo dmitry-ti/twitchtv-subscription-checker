@@ -34,7 +34,7 @@ public class AuthServlet extends HttpServlet {
 		LOGGER.info("processing get request");
 
 		Properties properties = new Properties();
-		try(InputStream is = new FileInputStream(Paths.get(System.getProperty("catalina.base"), "webapps", "subform.properties").toString())) {
+		try(InputStream is = new FileInputStream(Paths.get(System.getProperty("catalina.base"), "webapps", "subchecker.properties").toString())) {
 			properties.load(is);
 			LOGGER.info("properties: " + properties.toString());
 		} catch(IOException e) {

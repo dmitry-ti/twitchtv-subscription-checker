@@ -8,8 +8,8 @@ mvn install
 
 2. copy war file to tomcat webapps folder
 
-3. create subform.properties file:
-client_id = <twitch application id>
-client_secret = <twitch application secret>
-redirect_uri = http://<server>/subform/auth
-channel_name = <twitch channel name>
+3. create subckecker.properties file:
+client_id = abc
+client_secret = def
+redirect_uri = http://server/subckecker/auth
+channel_name = channel
