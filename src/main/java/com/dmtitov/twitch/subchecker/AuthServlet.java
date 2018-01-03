@@ -5,6 +5,8 @@ import static com.dmtitov.twitch.subchecker.SubscriptionStatus.SUBSCRIBED;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 import static java.net.HttpURLConnection.HTTP_OK;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -38,32 +40,46 @@ public class AuthServlet extends HttpServlet {
 			properties.load(is);
 			LOGGER.info("properties: " + properties.toString());
 		} catch(IOException e) {
-			LOGGER.severe("could not load properties: " + e);
+			LOGGER.info("could not load properties: " + e);
+		}
+		
+		final String clientId = getPropertyValue("SUBCHECKER_TWITCH_APP_CLIENT_ID", "twitch.app.client_id", properties);
+		final String clientSecret = getPropertyValue("SUBCHECKER_TWITCH_APP_CLIENT_SECRET", "twitch.app.client_secret", properties);
+		final String twitchAppRedirectUri = getPropertyValue("SUBCHECKER_TWITCH_APP_REDIRECT_URI", "twitch.app.redirect_uri", properties);
+		final String channelName = getPropertyValue("SUBCHECKER_TWITCH_CHANNEL_NAME", "twitch.channel_name", properties);
+		final String onSuccessRedirectUrl = getPropertyValue("SUBCHECKER_ON_SUCCESS_REDIRECT_URL", "on_success_redirect_url", properties);
+
+		if(isBlank(clientId) || isBlank(clientSecret) || isBlank(twitchAppRedirectUri) || isBlank(channelName) || isBlank(onSuccessRedirectUrl)) {
+			response.getWriter().println("<html><body>Server error: Wrong configuration</body></html>");
+			LOGGER.severe("Server error: Wrong configuration");
 			return;
 		}
 		
-		final String clientId = properties.getProperty("client_id");
-		final String clientSecret = properties.getProperty("client_secret");
-		final String subcheckerEndpoint = properties.getProperty("subchecker_endpoint");
-		final String channelName = properties.getProperty("channel_name");
-		final String onSuccessRedirectUrl = properties.getProperty("on_success_redirect_url");
 		final String code = request.getParameter("code");
+		if(isBlank(code)) {
+			response.getWriter().println("<html><body>Server error: Wrong request parameters</body></html>");
+			LOGGER.severe("Server error: Wrong request parameters");
+			return;
+		}
 
-		Token token = getToken(clientId, clientSecret, subcheckerEndpoint, code);
+		Token token = getToken(clientId, clientSecret, twitchAppRedirectUri, code);
 		if(token == null) {
 			response.getWriter().println("<html><body>Server error: Could not get access token</body></html>");
+			LOGGER.severe("Server error: Could not get access token");
 			return;
 		}
 
 		User user = getUser(clientId, token.getAccessToken());
 		if(user == null) {
 			response.getWriter().println("<html><body>Server error: Could not get user information</body></html>");
+			LOGGER.severe("Server error: Could not get user information");
 			return;
 		}
 
 		Channel channel = getChannel(clientId, channelName, token.getAccessToken());
 		if(channel == null) {
 			response.getWriter().println("<html><body>Server error: Could not get channel information</body></html>");
+			LOGGER.severe("Server error: Could not get channel information");
 			return;
 		}
 
@@ -71,14 +87,17 @@ public class AuthServlet extends HttpServlet {
 		SubscriptionStatus subscriptionStatus = getSubscriptionStatus(clientId, token.getAccessToken(), user.getId(), channel.getId(), subscription);
 		if(subscriptionStatus == null) {
 			response.getWriter().println("<html><body>Server error: Could not get subscription status</body></html>");
+			LOGGER.severe("Server error: Could not get subscription status");
 			return;
 		} else if(subscriptionStatus == NOT_SUBSCRIBED) {
 			response.getWriter().println("<html><body>User is not subscribed to the channel</body></html>");
+			LOGGER.info("User is not subscribed to the channel");
 			return;
 		}
 
 		response.setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
-		response.setHeader("Location", onSuccessRedirectUrl);  
+		response.setHeader("Location", onSuccessRedirectUrl);
+		LOGGER.info("Performing redirect to: " + onSuccessRedirectUrl);
 	}
 
 	private Token getToken(String clientId, String clientSecret, String redirectUri, String code) {
@@ -237,5 +256,16 @@ public class AuthServlet extends HttpServlet {
 		}
 		response.setBody(responseOutputStream.toString(UTF_8.name()));
 		return response;
-	}		
+	}
+	
+	private String getPropertyValue(String environmentVariableName, String propertyName, Properties properties) {
+		String env = System.getenv(environmentVariableName);
+		if(isNotBlank(env)) {
+			LOGGER.info("Using environment variable: " + environmentVariableName + "=" + env);
+			return env;
+		}
+		String prop = properties.getProperty(propertyName);
+		LOGGER.info("Using property: " + propertyName + "=" + prop);
+		return prop;
+	}
 }
