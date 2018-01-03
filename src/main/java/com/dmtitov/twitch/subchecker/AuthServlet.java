@@ -16,6 +16,8 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -24,6 +26,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.text.StrSubstitutor;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -96,7 +99,10 @@ public class AuthServlet extends HttpServlet {
 		}
 
 		response.setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
-		response.setHeader("Location", onSuccessRedirectUrl);
+		Map<String, String> params = new HashMap<>();
+		params.put("username", user.getDisplayedName());
+		StrSubstitutor substitutor = new StrSubstitutor(params);
+		response.setHeader("Location", substitutor.replace(onSuccessRedirectUrl));
 		LOGGER.info("Performing redirect to: " + onSuccessRedirectUrl);
 	}
 
