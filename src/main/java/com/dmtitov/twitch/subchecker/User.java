@@ -5,6 +5,7 @@ public class User {
 	private String displayedName;
 	private String id;
 	private String email;
+	private String logo;
 	
 	public String getName() {
 		return name;
@@ -29,5 +30,11 @@ public class User {
 	}
 	public void setEmail(String email) {
 		this.email = email;
-	}	
+	}
+	public String getLogo() {
+		return logo;
+	}
+	public void setLogo(String logo) {
+		this.logo = logo;
+	}
 }
